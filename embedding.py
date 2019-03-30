@@ -3,6 +3,7 @@
 #   https://www.tensorflow.org/guide/embedding
 #   https://towardsdatascience.com/neural-network-embeddings-explained-4d028e6f0526
 #   https://machinelearningmastery.com/use-word-embedding-layers-deep-learning-keras/
+#   https://jovianlin.io/embeddings-in-keras/
 import tensorflow as tf
 # pip3 install keras
 from tensorflow.keras import layers
@@ -57,7 +58,7 @@ def main():
     #-------------------------------------------------------------------------
     # print("Creating validation file objects")
     # try:
-    # 	utput_file = open(filePath + valid_no_noise_output_file, "w")
+    # 	output_file = open(filePath + valid_no_noise_output_file, "w")
     # except (OSError, IOError) as e:
     # 	print(e)
     # 	exit()
@@ -70,7 +71,7 @@ def main():
     print("Reading training data")
     for line in test_label_object:
         tmp = list(line)
-        del tmp[-1]
+        del tmp[-1] # delete the new line
         line = "".join(tmp)
 
         test_label_data.append(line)
@@ -78,7 +79,7 @@ def main():
 
     for line in test_file_object:
         tmp = line.split(",")
-        del tmp[-1]
+        del tmp[-1] # delete the new line
         test_data.append(tmp)
 
     print(len(test_data))
@@ -95,14 +96,13 @@ def main():
     arrayLength = 300
     dataLength = 6200
 
-    # encoded_data = []
-    # for line in test_data:
-    #     encoded_data.append([one_hot(d, dataLength) for d in line])
-    padded_data = pad_sequences(test_data, maxlen=arrayLength, dtype='int32', value=0, padding="post")
+    encoded_data = []
+    encoded_data = [one_hot(d, dataLength) for d in line]
+    padded_data = pad_sequences(encoded_data, maxlen=arrayLength, padding="post")
 
-    encoder = LabelEncoder()
-    encoder.fit(test_label_data)
-    encoded_labels = encoder.transform(test_label_data)
+    # encoder = LabelEncoder()
+    # encoder.fit(test_label_data)
+    # encoded_labels = encoder.transform(test_label_data)
     # convert integers to dummy variables
 
     # test_labels = []
@@ -113,7 +113,9 @@ def main():
     # max_value: number of different "words"
     # input_dimension: sizer of vector space in which to embed the words
     # dataLength: length of sentence (range of m/z values)
-    model.add(Embedding(max_value, input_dimension, input_length=arrayLength))
+    model.add(Embedding(input_dim = max_value,
+                        output_dim = max_value,
+                        input_length=arrayLength))
     # the model will take as input an integer matrix of size (batch, input_length).
     # the largest integer (i.e. word index) in the input should be
     # no larger than 999 (vocabulary size).
@@ -128,11 +130,11 @@ def main():
     print(model.summary())
 
     # fit the model
-    model.fit(padded_data, encoded_labels, epochs=10, verbose=1)
+    model.fit(padded_data, test_label_data, epochs=50, verbose=1)
 
     # evaluate the models
-    loss, accuracy = model.evaluate(padded_data, encoded_labels, verbose=0)
-    print('Accuracy: %f' % (accuracy*100))
+    loss, accuracy = model.evaluate(padded_data, test_label_data, verbose=0)
+    print('Accuracy: %f' % accuracy)
 
     # output_array = model.predict(noise_data)
     # assert output_array.shape == (32, 10, 64)

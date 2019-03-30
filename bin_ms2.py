@@ -1,22 +1,25 @@
-import os # file system
+import os  # file system
 
 # writes the data in a csv format to the file
+
+
 def outputData(writer, data, index, length):
-	# Error checking for empty data
-	if len(data) == 0 or len(data[index]) == 0:
-		print("Data is empty. Index: {}".format(index))
-		return -1
-	if not writer:
-		print("Ouput file object is null")
-		return -1
+    # Error checking for empty data
+    if len(data) == 0 or len(data[index]) == 0:
+        print("Data is empty. Index: {}".format(index))
+        return -1
+    if not writer:
+        print("Ouput file object is null")
+        return -1
 
-	# write the data to file
-	i = 0
-	while i < length-1:
-		writer.write(str(int(data[index][i])) + ",")
-		i += 1
+    # write the data to file
+    i = 0
+    while i < length - 1:
+        writer.write(str(int(data[index][i])) + ",")
+        i += 1
 
-	writer.write(str(data[index][i]) + "\n")
+    writer.write(str(data[index][i]) + "\n")
+
 
 def binLines(fileObject, outputObject, labelObject):
     if not fileObject:
@@ -24,10 +27,10 @@ def binLines(fileObject, outputObject, labelObject):
         return
 
     peptide_count = 0
-	# read all the data in the file
+    # read all the data in the file
     for line in fileObject:
 
-		# hold the peak data
+        # hold the peak data
         splitLine = line.split(",")
         if len(splitLine) == 1:
             continue
@@ -67,7 +70,8 @@ def binLines(fileObject, outputObject, labelObject):
         peptide_count += 1
 
         if peptide_count % 100000 == 0:
-        	print("Wrote {} peptides".format(peptide_count))
+            print("Wrote {} peptides".format(peptide_count))
+
 
 def binFiles(folderPath):
     outputFolder = folderPath + "binned/"
@@ -98,44 +102,49 @@ def binFiles(folderPath):
 
         binLines(inputFile, outputFile, labelFile)
 
+
 def binMS2(fileObject, outputObject):
     if not fileObject:
         print("Input file failed")
         return
 
     peptide_count = 0
-	data = [] # m/z array
-	# read all the data in the file
+    data = []  # m/z array
+    # read all the data in the file
     for line in fileObject:
 
-		# hold the peak data
-        splitLine = line.split(" ")
+        # hold the peak data
+        splitLine = line.split()
         if len(splitLine) == 1:
             continue
 
-		# we are at a new spectrum, but not the first header
-		if splitLine[0][0] == "S" and not peptide_count == 0:
-			for i in data:
-	            outputString.append("{},".format(str(i)))
+        outputString = []
+        # we are at a new spectrum, but not the first header
+        if splitLine[0][0] == "S" and not len(data) == 0:
+            for i in data:
+                outputString.append(str(i))
+                outputString.append(",")
 
-			outputString[-1] = "\n"
-	        outputString = "".join(outputString)
+            outputString[-1] = "\n"
+            outputString = "".join(outputString)
 
-			data = []
-			peptide_count += 1
+            outputObject.write(outputString)
 
-			if peptide_count % 10000 == 0:
-	        	print("Wrote {} peptides".format(peptide_count))
-			continue
+            data = []
+            peptide_count += 1
 
-		# skip header information
-		if splitLine[0][0] == "Z":
-			continue
+            if peptide_count % 10000 == 0:
+                print("Wrote {} peptides".format(peptide_count))
+            continue
 
-		# add the m/z value to the data list
-		m_z = int(round(float(splitLine[0])))
-		if m_z not in data:
-			data.append(m_z)
+        # skip header information
+        if splitLine[0][0] == "Z" or splitLine[0][0] == "S" or splitLine[0][0] == "H":
+            continue
+
+        # add the m/z value to the data list
+        m_z = int(round(float(splitLine[0])))
+        if m_z not in data:
+            data.append(m_z)
 
 def binMS2Files(folderPath):
     outputFolder = folderPath + "binned/"
@@ -167,12 +176,13 @@ def binMS2Files(folderPath):
 def main():
     print("Bin MS2 script")
 
-	# Default variables
+    # Default variables
     # folderPath = "C:/Users/koob8/Desktop/embeddings/output/peptide_data/"
-	folderPath = "C:/Users/koob8/Desktop/embeddings/split/peptide_data/"
+    # folderPath = "C:/Users/koob8/Desktop/embeddings/split/peptide_data/"
+    folderPath = "H:/embeddings/"
 
     # binFiles(folderPath)
-	binMS2Files(folderPath)
+    binMS2Files(folderPath)
 
 if __name__ == '__main__':
     main()
