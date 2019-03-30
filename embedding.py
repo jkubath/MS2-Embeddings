@@ -13,6 +13,8 @@ from keras.layers import Flatten
 from keras.layers.embeddings import Embedding
 from keras.preprocessing.sequence import pad_sequences # pad input data with 0's
 from keras.preprocessing.text import one_hot # encode labels as integers
+import os # file structure
+import sys # command line arguments
 
 # pip3 install sklearn
 from sklearn.preprocessing import LabelEncoder
@@ -23,17 +25,23 @@ def main():
     print("Keras embedding")
 
     # Read in the data
-    outputFolder = "C:/Users/koob8/Desktop/embeddings/output/"
+    if len(sys.argv) > 1:
+        filePath = str(os.getcwd()) + "/" + sys.argv[1] + "/"
+    else:
+        filePath = str(os.getcwd()) + "/binned/"
 
-    # length of peak array
-    # max value in binned_peptide_0 was 6139
-    dataLength = 7000
+    filePath = "/Volumes/Jonah/embeddings/"
+    splitPath = str(os.getcwd()) + "/split/"
+
+    # Read in the data
+    outputFolder = str(os.getcwd()) + "/output/"
 
     # training set
     #-------------------------------------------------------------------------
-    peptide_folder = outputFolder + "peptide_data/binned/"
-    test_file = peptide_folder + "binned_peptide_0.ms2"
-    test_label_file = peptide_folder + "label_peptide_0.ms2"
+    # peptide_folder = outputFolder + "peptide_data/binned/"
+    peptide_folder = filePath + "binned/"
+    test_file = peptide_folder + "binned_train_noise.ms2"
+    test_label_file = splitPath + "/train_protein.txt"
 
     # validation set
     #-------------------------------------------------------------------------
@@ -43,9 +51,9 @@ def main():
     print("Creating training file objects")
     try:
     	# labels
-        test_label_object = open(test_label_file, "r")
+        train_label_object = open(test_label_file, "r")
     	# input data
-        test_file_object = open(test_file, "r")
+        train_file_object = open(test_file, "r")
 
     	# write to the output files
     # 	no_noise_output_file = open(filePath + no_noise_output_file, "w")
@@ -63,51 +71,87 @@ def main():
     # 	print(e)
     # 	exit()
 
+    num_lines = 1000
+    count = 0
+    maxLine = 0
     # Read and output training data
     #-------------------------------------------------------------------------
-    test_label_data = []
-    test_data = []
+    train_label_data = []
+    train_data = []
     tmp = []
     print("Reading training data")
-    for line in test_label_object:
+    for line in train_label_object:
         tmp = list(line)
         del tmp[-1] # delete the new line
         line = "".join(tmp)
 
-        test_label_data.append(line)
+        train_label_data.append(line)
 
+        count += 1
+        # if count % 100 == 0:
+        #     print("Count {}".format(count))
+        if count == num_lines:
+            break
 
-    for line in test_file_object:
+    count = 0
+    for line in train_file_object:
         tmp = line.split(",")
         del tmp[-1] # delete the new line
-        test_data.append(tmp)
+        int_val = []
+        for i in range(len(tmp)):
+            int_val.append(int(tmp[i]))
 
-    print(len(test_data))
-    print(len(test_label_data))
-    test_data = np.asarray(test_data)
-    test_label_data = np.asarray(test_label_data)
+        train_data.append(int_val)
+
+        if len(tmp) > maxLine:
+            maxLine = len(tmp)
+
+        count += 1
+        # if count % 100 == 0:
+        #     print("Count {}".format(count))
+        if count == num_lines:
+            break
+
+    count = 0
+    while count < 10:
+        print("{} {}".format(train_label_data[count], train_data[count][1:5]))
+        count += 1
+
+    # print(maxLine)
+    # print(len(train_data))
+    # print(len(train_label_data))
+
+    train_data = np.asarray(train_data)
+    train_label_data = np.asarray(train_label_data)
 
     # Read and output validation data
     #-------------------------------------------------------------------------
     # print("Reading validation data")
 
-    max_value = 6200
+    max_value = 6000
     input_dimension = 100
-    arrayLength = 300
-    dataLength = 6200
+    arrayLength = 400
+    dataLength = 2000
 
-    encoded_data = []
-    encoded_data = [one_hot(d, dataLength) for d in line]
-    padded_data = pad_sequences(encoded_data, maxlen=arrayLength, padding="post")
+    labelencoder = LabelEncoder()
+    encoded_label = labelencoder.fit_transform(train_label_data)
 
-    # encoder = LabelEncoder()
-    # encoder.fit(test_label_data)
-    # encoded_labels = encoder.transform(test_label_data)
-    # convert integers to dummy variables
+    # encode string labels as integers
+    # encoded_label = []
+    # for i in range(len(train_label_data)):
+    #     encoded_label.append([])
+    #     if i < 5:
+    #         print("{}".format(train_label_data[i]))
+    #     encoded_label[i] = one_hot(train_label_data[i], dataLength)
 
-    # test_labels = []
-    # for label in test_label_data:
-    #     test_labels.append(one_hot(label, 1000000))
+    print(encoded_label[1:5])
+
+    # encode all
+    padded_data = pad_sequences(train_data, maxlen=arrayLength, padding="post")
+    print(padded_data[1:5])
+
+    print(len(encoded_label))
+    print(len(padded_data))
 
     model = Sequential()
     # max_value: number of different "words"
@@ -130,10 +174,10 @@ def main():
     print(model.summary())
 
     # fit the model
-    model.fit(padded_data, test_label_data, epochs=50, verbose=1)
+    model.fit(x=padded_data, y=encoded_label, epochs=10, verbose=1)
 
     # evaluate the models
-    loss, accuracy = model.evaluate(padded_data, test_label_data, verbose=0)
+    loss, accuracy = model.evaluate(padded_data, train_label_data, verbose=0)
     print('Accuracy: %f' % accuracy)
 
     # output_array = model.predict(noise_data)
