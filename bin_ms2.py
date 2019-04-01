@@ -178,8 +178,8 @@ def main():
 
     # Default variables
     # folderPath = "C:/Users/koob8/Desktop/embeddings/output/peptide_data/"
-    # folderPath = "C:/Users/koob8/Desktop/embeddings/split/peptide_data/"
-    folderPath = "H:/embeddings/"
+    folderPath = "C:/Users/koob8/Desktop/embeddings/split/peptide_data/"
+    # folderPath = "H:/embeddings/"
 
     # binFiles(folderPath)
     binMS2Files(folderPath)

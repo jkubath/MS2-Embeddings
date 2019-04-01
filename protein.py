@@ -12,13 +12,8 @@ def outputData(writer, data, index, length):
 		print("Ouput file object is null")
 		return -1
 
-	# write the data to file
-	i = 0
-	while i < length-1:
-		writer.write(str(int(data[index][i])) + ",")
-		i += 1
-
-	writer.write(str(data[index][i]) + "\n")
+	string = ",".join(str(i) for i in data[index])
+	writer.write(string + "\n")
 
 # Returns a numpy array of the data
 def readFile(fileObject, arraySize, outputFileObject, writeToFile = False):
@@ -43,7 +38,7 @@ def readFile(fileObject, arraySize, outputFileObject, writeToFile = False):
 			# first iteration through, we have not read any spectrum data yet
 			if firstIteration:
 				firstIteration = False
-				data.append(np.zeros(arraySize))
+				data.append([])
 			# finished reading a spectrum, output to file
 			else:
 				if writeToFile:
@@ -52,25 +47,16 @@ def readFile(fileObject, arraySize, outputFileObject, writeToFile = False):
 						break
 				addIndex = 0
 				spectrum_count += 1
-				data.append(np.zeros(arraySize))
+				data.append([])
 				if spectrum_count % 1000 == 0:
 					print("Wrote {} peptides".format(spectrum_count))
 			continue
 
 		# Add the peak point to the correct bin
 		try:
-			# change the index
-			if int(float(splitLine[0])) > addIndex:
-				addIndex = int(float(splitLine[0]))
-
-			# move down the array until an unfilled index is found
-			# while(data[addIndex] != 0):
-			# 	addIndex += 1
-			if float(splitLine[1]) > data[spectrum_count][addIndex]:
-				data[spectrum_count][addIndex] = int(float(splitLine[1]))
-
-			# print(addIndex, data[addIndex])
-
+			value = int(float(splitLine[0]))
+			if not value in data[spectrum_count]:
+				data[spectrum_count].append(value)
 
 		# header information
 		except ValueError:
@@ -78,21 +64,17 @@ def readFile(fileObject, arraySize, outputFileObject, writeToFile = False):
 			print("Error at {}".format(splitLine[0]))
 			print("First char: {}".format(splitLine[0][0]))
 
-	return np.array(data)
-
 # python script for protein research
 def main():
 	print("Protein script")
 
 	# Default variables
-	#filePath = "/Users/jonah/Desktop/research/"
-	filePath = "C:/Users/koob8/Desktop/nn/output/"
-	fileName = "noNoise.ms2"
-	#fileName = "sampleOut.ms2"
-	fileOutput = "peptides_sd.ms2"
+	filePath = "D:/embeddings/"
+	fileName = "test_no_noise.ms2"
+	fileOutput = "test_data.txt"
 
 	# hold the peak information
-	dataLength = 5000
+	dataLength = 7000
 
 	# open file for reading
 	try:
@@ -104,7 +86,7 @@ def main():
 		return
 
 	# read the data
-	data = readFile(inputFileObject, dataLength, outputFileObject, True)
+	readFile(inputFileObject, dataLength, outputFileObject, True)
 
 if __name__ == '__main__':
 	main()

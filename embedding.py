@@ -8,11 +8,11 @@ import tensorflow as tf
 # pip3 install keras
 from tensorflow.keras import layers
 from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import Flatten
+from keras.layers import Dense, Dropout, Flatten, GRU
 from keras.layers.embeddings import Embedding
 from keras.preprocessing.sequence import pad_sequences # pad input data with 0's
 from keras.preprocessing.text import one_hot # encode labels as integers
+from keras.utils.vis_utils import plot_model
 import os # file structure
 import sys # command line arguments
 
@@ -28,20 +28,19 @@ def main():
     if len(sys.argv) > 1:
         filePath = str(os.getcwd()) + "/" + sys.argv[1] + "/"
     else:
-        filePath = str(os.getcwd()) + "/binned/"
+        filePath = str(os.getcwd()) + "/random/"
 
-    filePath = "/Volumes/Jonah/embeddings/"
-    splitPath = str(os.getcwd()) + "/split/"
-
+    # Save model information
+    output_dir = str(os.getcwd()) + "/model/"
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = output_dir + "model.ckpt"
     # Read in the data
     outputFolder = str(os.getcwd()) + "/output/"
 
     # training set
     #-------------------------------------------------------------------------
-    # peptide_folder = outputFolder + "peptide_data/binned/"
-    peptide_folder = filePath + "binned/"
-    test_file = peptide_folder + "binned_train_noise.ms2"
-    test_label_file = splitPath + "/train_protein.txt"
+    test_file = filePath + "train_data.txt"
+    test_label_file = filePath + "train_protein_data.txt"
 
     # validation set
     #-------------------------------------------------------------------------
@@ -112,10 +111,10 @@ def main():
         if count == num_lines:
             break
 
-    count = 0
-    while count < 10:
-        print("{} {}".format(train_label_data[count], train_data[count][1:5]))
-        count += 1
+    # count = 0
+    # while count < 10:
+    #     print("{} {}".format(train_label_data[count], train_data[count][1:5]))
+    #     count += 1
 
     # print(maxLine)
     # print(len(train_data))
@@ -131,44 +130,29 @@ def main():
     max_value = 6000
     input_dimension = 100
     arrayLength = 400
-    dataLength = 2000
+    # dataLength = 2000
 
     labelencoder = LabelEncoder()
     encoded_label = labelencoder.fit_transform(train_label_data)
 
-    # encode string labels as integers
-    # encoded_label = []
-    # for i in range(len(train_label_data)):
-    #     encoded_label.append([])
-    #     if i < 5:
-    #         print("{}".format(train_label_data[i]))
-    #     encoded_label[i] = one_hot(train_label_data[i], dataLength)
-
-    print(encoded_label[1:5])
-
     # encode all
     padded_data = pad_sequences(train_data, maxlen=arrayLength, padding="post")
-    print(padded_data[1:5])
 
-    print(len(encoded_label))
-    print(len(padded_data))
-
+    # Create the model with Keras API
+    # --------------------------------------------------------------------------
     model = Sequential()
     # max_value: number of different "words"
-    # input_dimension: sizer of vector space in which to embed the words
+    # input_dimension: size of vector space in which to embed the words
     # dataLength: length of sentence (range of m/z values)
     model.add(Embedding(input_dim = max_value,
-                        output_dim = max_value,
-                        input_length=arrayLength))
-    # the model will take as input an integer matrix of size (batch, input_length).
-    # the largest integer (i.e. word index) in the input should be
-    # no larger than 999 (vocabulary size).
-    # now model.output_shape == (None, 10, 64), where None is the batch dimension.
-    model.add(Flatten())
-    model.add(Dense(1, activation='sigmoid'))
+                        output_dim = 400,
+                        input_length = arrayLength))
+    model.add(GRU(units=32, dropout = 0.2, recurrent_dropout=0.2))
 
-    # input: range of numbers 0-999, array dimension of output 32 rows x 10 columns
-    #input_array = np.random.randint(1000, size=(32, 10))
+    # model.add(Flatten())
+    # model.add(Dense(10, activation='sigmoid'))
+    # model.add(Dropout(0.5))
+    model.add(Dense(1, activation='sigmoid'))
 
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['acc'])
     print(model.summary())
@@ -177,8 +161,32 @@ def main():
     model.fit(x=padded_data, y=encoded_label, epochs=10, verbose=1)
 
     # evaluate the models
-    loss, accuracy = model.evaluate(padded_data, train_label_data, verbose=0)
+    loss, accuracy = model.evaluate(padded_data, encoded_label, verbose=0)
     print('Accuracy: %f' % accuracy)
+
+    # save the model information
+    #---------------------------------------------------------------------------
+    # get the keras model
+    model = get_model()
+    # # get the tensor name from the embedding layer
+    # tensor_name = next(filter(lambda x: x.name == 'embedding', model.layers)).W.name
+    #
+    # # the vocabulary
+    # metadata_file_name = os.path.join(output_dir ,tensor_name)
+    #
+    # saver = tf.train.Saver()
+    # saver.save(keras.backend.get_session(), OUTPUT_MODEL_FILE_NAME)
+    #
+    #
+    # saver.save(keras.backend.get_session(), output_file)
+    # summary_writer = tf.train.SummaryWriter(output_dir)
+    # config = tf.contrib.tensorboard.plugins.projector.ProjectorConfig()
+    # embedding = config.embeddings.add()
+    # embedding.tensor_name = tensor_name
+    # embedding.metadata_path = metadata_file_name
+    # tf.contrib.tensorboard.plugins.projector.visualize_embeddings(summary_writer, config)
+    plot_model(model, to_file=output_dir + 'model_plot.png', show_shapes=True, show_layer_names=True)
+
 
     # output_array = model.predict(noise_data)
     # assert output_array.shape == (32, 10, 64)
