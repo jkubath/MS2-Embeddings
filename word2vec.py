@@ -22,15 +22,15 @@ import sys # command line arguments
 import gensim
 
 # pip3 install sklearn
-# from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import LabelBinarizer
-# from sklearn.preprocessing import OneHotEncoder
 
 
 import numpy as np
 
 # read the file, split by ',' , and return the data
 def readFile(fileObject, printLine = False):
+    maxLines = 250000
+    count = 0
     data = []
     tmp = []
     for line in fileObject:
@@ -44,6 +44,10 @@ def readFile(fileObject, printLine = False):
             print(line)
 
         data.append(line)
+
+        count += 1
+        if count == maxLines:
+            break
 
     return data
 
@@ -59,17 +63,17 @@ def main():
     # Save model information
     output_dir = str(os.getcwd()) + "/model/"
     os.makedirs(output_dir, exist_ok=True)
-    output_file = output_dir + "word2vec.txt"
+    output_file = output_dir + "gensim_model.txt"
     # Read in the data
     outputFolder = str(os.getcwd()) + "/output/"
 
     # Data files
     #-------------------------------------------------------------------------
-    train_file = filePath + "train_data.txt"
-    train_label_file = filePath + "train_protein_data.txt"
+    # train_file = filePath + "train_data.txt"
+    # train_label_file = filePath + "train_protein_data.txt"
     # Large dataset
-    # train_file = "D:/embeddings/test_data.txt"
-    # train_label_file = str(os.getcwd()) + "/split/test_protein.txt"
+    train_file = "D:/embeddings/test_data.txt"
+    train_label_file = str(os.getcwd()) + "/split/test_protein.txt"
 
     test_file = filePath + "test_data.txt"
     test_label_file = filePath + "test_protein_data.txt"
@@ -108,6 +112,9 @@ def main():
     test_data = np.asarray(test_data)
     test_label_data = np.asarray(test_label_data)
 
+    # find all unique protein ids for label encoding
+    all_labels = np.unique(np.concatenate((train_label_data, test_label_data), 0))
+
     # max_length = 0
     #
     # for i in train_data:
@@ -116,6 +123,7 @@ def main():
     #
     # print("Train data: {}".format(len(train_data)))
     # print("Max Length: {}".format(max_length))
+
     # GENSIM MODEL
     #---------------------------------------------------------------------------
 
@@ -147,7 +155,9 @@ def main():
     # Convert train "sentences" to list of integers
     tokenizer_obj = Tokenizer()
     tokenizer_obj.fit_on_texts(train_data)
+    tokenizer_obj.fit_on_texts(test_data)
     sequences = tokenizer_obj.texts_to_sequences(train_data)
+
 
     train_max_length = 0
 
@@ -159,12 +169,13 @@ def main():
     print("Max Length: {}".format(train_max_length))
 
     # pad sequences to the same length
-    train_max_length = max([len(s) for s in train_data])
     train_data = pad_sequences(sequences, maxlen=train_max_length, padding='post')
 
     # convert string labels to array of integers
     labelencoder = LabelBinarizer()
-    train_encoded_label = labelencoder.fit_transform(train_label_data)
+    # train_encoded_label = labelencoder.fit_transform(train_encoded_label)
+    labelencoder.fit_transform(all_labels)
+    train_encoded_label = labelencoder.transform(train_label_data)
 
     train_label_length = 0
 
@@ -187,19 +198,20 @@ def main():
         if len(i) > train_data_length:
             train_data_length = len(i)
 
-    # print("Test data: {}".format(len(sequences)))
-    # print("Test data Length: {}".format(train_max_length))
+    print("Test data: {}".format(len(sequences)))
+    print("Test data Length: {}".format(train_max_length))
 
     # convert test labels to array of integers
-    test_encoded_label = labelencoder.fit_transform(test_label_data)
+    # test_encoded_label = labelencoder.fit_transform(test_label_data)
+    test_encoded_label = labelencoder.transform(test_label_data)
 
     test_label_length = 0
     for i in test_encoded_label:
         if len(i) > test_label_length:
             test_label_length = len(i)
 
-    # print("Test label data: {}".format(len(test_encoded_label)))
-    # print("Test Label Length: {}".format(test_label_length))
+    print("Test label data: {}".format(len(test_encoded_label)))
+    print("Test Label Length: {}".format(test_label_length))
 
     # define vocabulary size (largest integer value)
     vocab_size = len(tokenizer_obj.word_index) + 1
@@ -212,16 +224,28 @@ def main():
     model.add(Embedding(vocab_size, 100, input_length=train_max_length))
     # Layer 1
     # model.add(Conv1D(filters=256, kernel_size=8, activation='relu'))
+    # # model.add(MaxPooling1D(pool_size=2))
+    # # Layer 2
+    # model.add(Conv1D(filters=256, kernel_size=8, activation='relu'))
     # model.add(MaxPooling1D(pool_size=2))
-    # # # Layer 2
-    # model.add(Conv1D(filters=128, kernel_size=8, activation='relu'))
+    # # Layer 3
+    # model.add(Conv1D(filters=256, kernel_size=8, activation='relu'))
+    # # model.add(MaxPooling1D(pool_size=2))
+    # # Layer 3
+    # model.add(Conv1D(filters=256, kernel_size=8, activation='relu'))
     # model.add(MaxPooling1D(pool_size=2))
-    # # # Layer 3
-    # model.add(Conv1D(filters=128, kernel_size=8, activation='relu'))
+    # # Layer 3
+    # model.add(Conv1D(filters=256, kernel_size=8, activation='relu'))
+    # # model.add(MaxPooling1D(pool_size=2))
+    # # Layer 3
+    # model.add(Conv1D(filters=256, kernel_size=8, activation='relu'))
+    # # model.add(MaxPooling1D(pool_size=2))
+    # # Layer 3
+    # model.add(Conv1D(filters=256, kernel_size=8, activation='relu'))
     # model.add(MaxPooling1D(pool_size=2))
+
     # output layers
     model.add(Flatten())
-    model.add(Dense(1000, activation='relu'))
     model.add(Dense(1000, activation='relu'))
     model.add(Dense(1000, activation='relu'))
     model.add(Dense(train_label_length, activation='softmax'))
@@ -230,10 +254,18 @@ def main():
     # compile network
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['categorical_accuracy'])
     # fit network
-    model.fit(train_data, train_encoded_label, batch_size = 1000, epochs=1, verbose=2)
+    model.fit(train_data, train_encoded_label, batch_size = 10, epochs=10, verbose=2)
     # evaluate
-    loss, acc = model.evaluate(train_data, train_encoded_label, verbose=0)
+    loss, acc = model.evaluate(test_data, test_encoded_label, verbose=0)
     print('Test Accuracy: %f' % (acc*100))
+
+    # serialize model to JSON
+    model_json = model.to_json()
+    with open(output_dir + "keras_model", "w") as json_file:
+        json_file.write(model_json)
+    # serialize weights to HDF5
+    model.save_weights("model.h5")
+    print("Saved model to disk")
 
 
     #sp|P38149|DUG2_YEAST

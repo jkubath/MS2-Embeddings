@@ -55,3 +55,4 @@ output/valid_noise_binned.ms2
 \.DS_Store
 model/word2vec.txt
 output.txt
+model.h5
