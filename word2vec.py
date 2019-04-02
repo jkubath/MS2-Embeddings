@@ -17,15 +17,15 @@ from keras.layers.convolutional import Conv1D
 from keras.layers.convolutional import MaxPooling1D
 from keras.utils import to_categorical
 from keras.metrics import categorical_accuracy
+from keras.callbacks import TensorBoard
 import os # file structure
 import sys # command line arguments
-import gensim
+# import gensim
 
 # pip3 install sklearn
 # from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import LabelBinarizer
 # from sklearn.preprocessing import OneHotEncoder
-
 
 import numpy as np
 
@@ -46,6 +46,8 @@ def readFile(fileObject, printLine = False):
         data.append(line)
 
     return data
+
+# def modelEmbeddings(model, tensor_name, output_dir):
 
 def main():
     print("Word2Vec embedding")
@@ -206,31 +208,44 @@ def main():
 
     print("Input Vocabulary size: {}".format(vocab_size))
 
+    # tensorboard = TensorBoard(batch_size=1000,
+    #                       embeddings_freq=1,
+    #                       embeddings_layer_names=['embed'],
+    #                       embeddings_metadata='metadata.tsv',
+    #                       embeddings_data=train_data)
+
     # define model
     model = Sequential()
     # Embedding
-    model.add(Embedding(vocab_size, 100, input_length=train_max_length))
+    model.add(Embedding(vocab_size, 100, input_length=train_max_length, name="embed"))
     # Layer 1
-    # model.add(Conv1D(filters=256, kernel_size=8, activation='relu'))
-    # model.add(MaxPooling1D(pool_size=2))
+    model.add(Conv1D(filters=256, kernel_size=8, activation='relu'))
+    model.add(MaxPooling1D(pool_size=2))
     # # # Layer 2
-    # model.add(Conv1D(filters=128, kernel_size=8, activation='relu'))
-    # model.add(MaxPooling1D(pool_size=2))
+    model.add(Conv1D(filters=128, kernel_size=8, activation='relu'))
+    model.add(MaxPooling1D(pool_size=2))
     # # # Layer 3
     # model.add(Conv1D(filters=128, kernel_size=8, activation='relu'))
     # model.add(MaxPooling1D(pool_size=2))
     # output layers
     model.add(Flatten())
-    model.add(Dense(1000, activation='relu'))
-    model.add(Dense(1000, activation='relu'))
-    model.add(Dense(1000, activation='relu'))
+    # model.add(Dense(1000, activation='relu'))
+    # model.add(Dense(1000, activation='relu'))
+    # model.add(Dense(1000, activation='relu'))
     model.add(Dense(train_label_length, activation='softmax'))
     print(model.summary())
 
     # compile network
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['categorical_accuracy'])
     # fit network
-    model.fit(train_data, train_encoded_label, batch_size = 1000, epochs=1, verbose=2)
+    model.fit(
+        train_data,
+        train_encoded_label,
+        # callbacks=[tensorboard],
+        batch_size = 1000,
+        epochs=1,
+        verbose=2)
+
     # evaluate
     loss, acc = model.evaluate(train_data, train_encoded_label, verbose=0)
     print('Test Accuracy: %f' % (acc*100))
