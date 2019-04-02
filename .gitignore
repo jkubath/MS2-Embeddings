@@ -56,3 +56,4 @@ output/valid_noise_binned.ms2
 model/word2vec.txt
 output.txt
 model.h5
+model/keras_model
