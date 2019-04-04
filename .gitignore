@@ -57,3 +57,5 @@ model/word2vec.txt
 output.txt
 model.h5
 model/keras_model
+model_1.h5
+
