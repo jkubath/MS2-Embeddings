@@ -29,7 +29,7 @@ import numpy as np
 
 # read the file, split by ',' , and return the data
 def readFile(fileObject, printLine = False):
-    maxLines = 250000
+    maxLines = 300000
     count = 0
     data = []
     tmp = []
@@ -71,11 +71,12 @@ def main():
 
     # Data files
     #-------------------------------------------------------------------------
-    train_file = filePath + "train_data.txt"
-    train_label_file = filePath + "train_protein_data.txt"
+    # train_file = filePath + "train_data.txt"
+    # train_label_file = filePath + "train_protein_data.txt"
     # Large dataset
     # train_file = "D:/embeddings/test_data.txt"
-    # train_label_file = str(os.getcwd()) + "/split/test_protein.txt"
+    train_file = "/media/linux/Backup/embeddings/test_data.txt"
+    train_label_file = str(os.getcwd()) + "/split/test_protein.txt"
 
     test_file = filePath + "test_data.txt"
     test_label_file = filePath + "test_protein_data.txt"
@@ -187,7 +188,7 @@ def main():
 
     print("Train label data: {}".format(len(train_encoded_label)))
     print("Max Label Length: {}".format(train_label_length))
-    print("LabelBinarizer: {}".format(labelencoder.classes_))
+    # print("LabelBinarizer: {}".format(labelencoder.classes_))
 
     # Test Data
     #---------------------------------------------------------------------------
@@ -196,13 +197,13 @@ def main():
     # pad sequences to the same length as train
     test_data = pad_sequences(encoded_data, maxlen=train_max_length, padding='pre')
 
-    train_data_length = 0
+    test_data_length = 0
     for i in test_data:
-        if len(i) > train_data_length:
+        if len(i) > test_data_length:
             train_data_length = len(i)
 
-    print("Test data: {}".format(len(sequences)))
-    print("Test data Length: {}".format(train_max_length))
+    print("Test data: {}".format(len(test_data)))
+    print("Test data Length: {}".format(train_data_length))
 
     # convert test labels to array of integers
     # test_encoded_label = labelencoder.fit_transform(test_label_data)
@@ -232,19 +233,19 @@ def main():
     # Embedding
     model.add(Embedding(vocab_size, 1000, input_length=train_max_length, name="embed"))
     # Layer 1
-    model.add(Conv1D(filters=1024, kernel_size=8, activation='relu'))
-    # model.add(MaxPooling1D(pool_size=2))
+    model.add(Conv1D(filters=256, kernel_size=8, activation='relu'))
+    model.add(MaxPooling1D(pool_size=2))
     # # # Layer 2
-    model.add(Conv1D(filters=512, kernel_size=8, activation='relu'))
-    # model.add(MaxPooling1D(pool_size=2))
+    model.add(Conv1D(filters=256, kernel_size=8, activation='relu'))
+    model.add(MaxPooling1D(pool_size=2))
     # # # Layer 3
-    # model.add(Conv1D(filters=128, kernel_size=8, activation='relu'))
+    # model.add(Conv1D(filters=256, kernel_size=8, activation='relu'))
     # model.add(MaxPooling1D(pool_size=2))
 
     # output layers
     model.add(Flatten())
-    # model.add(Dense(1000, activation='relu'))
-    # model.add(Dense(1000, activation='relu'))
+    # model.add(Dense(500, activation='relu'))
+    # model.add(Dense(500, activation='relu'))
     model.add(Dense(train_label_length, activation='softmax'))
     print(model.summary())
 
@@ -261,7 +262,7 @@ def main():
 
     # evaluate
     loss, acc = model.evaluate(test_data, test_encoded_label, verbose=0)
-    print('Test Accuracy: %f' % (acc*100))
+    print('Test Accuracy: %f' % (acc))
 
     # serialize model to JSON
     model_json = model.to_json()
