@@ -14,7 +14,8 @@
   The output is an integer encoded version of the protein id that matches the input.
 
 # Files
-  1. word2vec.py is the main python script that runs the network
+  1. MS2_embedding.py is the main python script that runs the network
+    A. Uses protein.py to read MS2 data and write data to appropriate files
   2. gen_peptide.py is used to create training data.  A fasta file is read with protein
     sequences, the peptide substrings are generated, and output to file
   3. choose_random.py is used to read large two large files and split the data into

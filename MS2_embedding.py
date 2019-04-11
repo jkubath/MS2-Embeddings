@@ -17,10 +17,8 @@ from keras.layers.convolutional import Conv1D
 from keras.layers.convolutional import MaxPooling1D
 from keras.utils import to_categorical
 from keras.metrics import categorical_accuracy
-from keras.callbacks import TensorBoard
 import os # file structure
 import sys # command line arguments
-# import gensim
 
 # pip3 install sklearn
 from sklearn.preprocessing import LabelBinarizer
@@ -28,8 +26,7 @@ from sklearn.preprocessing import LabelBinarizer
 import numpy as np
 
 # read the file, split by ',' , and return the data
-def readFile(fileObject, printLine = False):
-    maxLines = 300000
+def readFile(fileObject, maxLines = 300000, printLine = False):
     count = 0
     data = []
     tmp = []
@@ -51,10 +48,8 @@ def readFile(fileObject, printLine = False):
 
     return data
 
-# def modelEmbeddings(model, tensor_name, output_dir):
-
 def main():
-    print("Word2Vec embedding")
+    print("Mass Spectrum matching using embedding")
 
     # Read in the data
     if len(sys.argv) > 1:
@@ -71,12 +66,11 @@ def main():
 
     # Data files
     #-------------------------------------------------------------------------
-    # train_file = filePath + "train_data.txt"
-    # train_label_file = filePath + "train_protein_data.txt"
+    train_file = filePath + "train_data.txt"
+    train_label_file = filePath + "train_protein_data.txt"
     # Large dataset
-    # train_file = "D:/embeddings/test_data.txt"
-    train_file = "/media/linux/Backup/embeddings/test_data.txt"
-    train_label_file = str(os.getcwd()) + "/split/test_protein.txt"
+    # train_file = "/media/linux/Backup/embeddings/test_data.txt"
+    # train_label_file = str(os.getcwd()) + "/split/test_protein.txt"
 
     test_file = filePath + "test_data.txt"
     test_label_file = filePath + "test_protein_data.txt"
@@ -118,40 +112,8 @@ def main():
     # find all unique protein ids for label encoding
     all_labels = np.unique(np.concatenate((train_label_data, test_label_data), 0))
 
-    # max_length = 0
-    #
-    # for i in train_data:
-    #     if len(i) > max_length:
-    #         max_length = len(i)
-    #
-    # print("Train data: {}".format(len(train_data)))
-    # print("Max Length: {}".format(max_length))
-
-    # GENSIM MODEL
-    #---------------------------------------------------------------------------
-
-    # model = gensim.models.Word2Vec(sentences=train_data, size=max_length, window=10, workers=4, min_count = 1)
-    # words = list(model.wv.vocab)
-    #
-    # print("Gensim Vocab: {}".format(len(words)))
-    #
-    # model.wv.save_word2vec_format(output_file, binary=False)
-    #
-    # # GENSIM MODEL END
-    # #---------------------------------------------------------------------------
-    #
-    # # read embeddings
-    # embeddings_index = {}
-    # f = open(output_file, encoding = "utf-8")
-    # for line in f:
-    #     values = line.split()
-    #     word = values[0]
-    #     coefs = np.asarray(values[1:])
-    #     embeddings_index[word] = coefs
-    # f.close()
-
-    # Tensorflow Embedding feeds to CNN network
-    #---------------------------------------------------------------------------
+# Tensorflow Embedding feeds to CNN network
+#-------------------------------------------------------------------------------
 
     # Train Data
     #---------------------------------------------------------------------------
@@ -160,7 +122,6 @@ def main():
     tokenizer_obj.fit_on_texts(train_data)
     tokenizer_obj.fit_on_texts(test_data)
     sequences = tokenizer_obj.texts_to_sequences(train_data)
-
 
     train_max_length = 0
 
@@ -176,7 +137,6 @@ def main():
 
     # convert string labels to array of integers
     labelencoder = LabelBinarizer()
-    # train_encoded_label = labelencoder.fit_transform(train_encoded_label)
     labelencoder.fit_transform(all_labels)
     train_encoded_label = labelencoder.transform(train_label_data)
 
@@ -188,7 +148,6 @@ def main():
 
     print("Train label data: {}".format(len(train_encoded_label)))
     print("Max Label Length: {}".format(train_label_length))
-    # print("LabelBinarizer: {}".format(labelencoder.classes_))
 
     # Test Data
     #---------------------------------------------------------------------------
@@ -206,7 +165,6 @@ def main():
     print("Test data Length: {}".format(train_data_length))
 
     # convert test labels to array of integers
-    # test_encoded_label = labelencoder.fit_transform(test_label_data)
     test_encoded_label = labelencoder.transform(test_label_data)
 
     test_label_length = 0
@@ -221,12 +179,6 @@ def main():
     vocab_size = len(tokenizer_obj.word_index) + 1
 
     print("Input Vocabulary size: {}".format(vocab_size))
-
-    # tensorboard = TensorBoard(batch_size=1000,
-    #                       embeddings_freq=1,
-    #                       embeddings_layer_names=['embed'],
-    #                       embeddings_metadata='metadata.tsv',
-    #                       embeddings_data=train_data)
 
     # define model
     model = Sequential()
@@ -255,7 +207,6 @@ def main():
     model.fit(
         train_data,
         train_encoded_label,
-        # callbacks=[tensorboard],
         batch_size = 1000,
         epochs=10,
         verbose=2)
@@ -269,7 +220,7 @@ def main():
     with open(output_dir + "keras_model", "w") as json_file:
         json_file.write(model_json)
     # serialize weights to HDF5
-    model.save_weights("model.h5")
+    model.save_weights(output_dir + "model.h5")
     print("Saved model to disk")
 
 
